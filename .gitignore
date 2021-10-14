@@ -1,0 +1,10 @@
+/node_modules
+/.idea
+
+yarn.lock
+yarn-error.log
+package-lock.json
+
+.env.local
+jwtRS256.key
+jwtRS256.key.pub
