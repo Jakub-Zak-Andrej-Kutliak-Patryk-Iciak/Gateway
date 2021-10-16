@@ -14,18 +14,13 @@ apiEndpoints:
   user:
     host: localhost
     paths: [ '/users', '/users/*' ]
-  music:
-    host: localhost
-    paths: [ '/musics', '/musics/*' ]
 serviceEndpoints:
   httpbin:
     url: 'https://httpbin.org'
   authService:
-    url: 'http://localhost:3002'
-  userService:
-    url: 'http://localhost:3000'
-  musicService:
     url: 'http://localhost:3001'
+  userService:
+    url: 'http://localhost:3002'
 policies:
   - basic-auth
   - cors

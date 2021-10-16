@@ -14,8 +14,7 @@ import { User } from './models/index.js';
 import { ProviderEnum } from "./enums/index.js";
 import { readFileSync } from "fs";
 import { TokenResponse, ErrorResponse, MessageResponse } from "./models/response/index.js";
-
-const port = 3002 //process.env.AUTH_PORT;
+import env from '../envConfig.js';
 
 const serviceAccount = JSON.parse(
   readFileSync('/Users/jakubzzak/Developer/parking-app-62183-firebase-adminsdk-c6xca-fcfeb1f1aa.json')
@@ -118,6 +117,37 @@ auth.post('/signOut', (req, res) => {
   }).catch((error) => res.status(500).json(new ErrorResponse(error).format()));
 })
 
+auth.post('/register/complete', (req, res) => {
+  console.log("Handling account complete")
+  const { gender, birthday } = req.body
+  if (!gender || !birthday) {
+    return res.status(404).json(new ErrorResponse("Wrong request format.").format())
+  }
+
+  const auth = getAuth();
+  console.log("Current user is:", auth.currentUser)
+  if (auth.currentUser) {
+    User.getUserByUid(auth.currentUser.uid)
+      .then(user => {
+        if (user) {
+          user.gender = gender
+          user.birthday = birthday
+          user.updateThisUser()
+            .then(() => {
+              return res.json(new MessageResponse("User updated successfully.").format())
+            }).catch(error => {
+              return res.status(500).json(new ErrorResponse(error).format())
+          })
+        } else {
+          res.status(500).json(new ErrorResponse("User not found.").format())
+        }
+      }).catch(error => {
+      res.status(500).json(new ErrorResponse(error).format())
+    })
+  }
+  res.status(401).json(new ErrorResponse("User needs to be signed in to complete their account.").format())
+})
+
 // TODO: verify google signature
 // const {OAuth2Client} = require('google-auth-library');
 // const client = new OAuth2Client(CLIENT_ID);
@@ -136,7 +166,7 @@ auth.post('/signOut', (req, res) => {
 // verify().catch(console.error);
 
 
-app.listen(port, () => {
-  console.log(`Auth server running on port ${port}`);
+app.listen(env.AUTH_PORT, () => {
+  console.log(`Auth server running on port ${env.AUTH_PORT}`);
 })
 

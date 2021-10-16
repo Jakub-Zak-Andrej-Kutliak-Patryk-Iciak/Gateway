@@ -1,16 +1,13 @@
 import express from 'express';
+import env from '../envConfig.js';
 
-const port = 3000
 let app = express();
 
-app.get('/account', (req, res, next) => {
-  res.send({ firstName: 'Jakub', lastName: 'Zak' })
+app.get('/register/complete', (req, res, next) => {
+  //TODO: update user
+  res.json({ message: 'Account completed' })
 })
 
-app.get('/users', (req, res, next) => {
-  res.send(["Tony","Lisa","Michael","Ginger","Food"])
-})
-
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+app.listen(env.PARKING_PORT, () => {
+  console.log(`Server running on port ${env.PARKING_PORT}`);
 })
