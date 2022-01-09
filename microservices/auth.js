@@ -14,10 +14,10 @@ import { User } from './models/index.js';
 import { ProviderEnum } from "./enums/index.js";
 import { readFileSync } from "fs";
 import { TokenResponse, ErrorResponse, MessageResponse } from "./models/response/index.js";
-import env from '../envConfig.js';
+
 
 const serviceAccount = JSON.parse(
-  readFileSync('/Users/jakubzzak/Developer/parking-app-62183-firebase-adminsdk-c6xca-fcfeb1f1aa.json')
+  readFileSync(`${process.env.FIREBASE_CONFIG_PATH}/parking-app-62183-firebase-adminsdk-c6xca-fcfeb1f1aa.json`)
 )
 const tokenPrivateKey = readFileSync('jwtRS256.key')
 
@@ -166,7 +166,7 @@ auth.post('/register/complete', (req, res) => {
 // verify().catch(console.error);
 
 
-app.listen(env.AUTH_PORT, () => {
-  console.log(`Auth server running on port ${env.AUTH_PORT}`);
+app.listen(process.env.AUTH_PORT, () => {
+  console.log(`Auth server running on port ${process.env.AUTH_PORT}`);
 })
 
