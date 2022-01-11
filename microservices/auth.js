@@ -13,6 +13,7 @@ import bodyParser from "body-parser";
 import { User } from './models/index.js';
 import { ProviderEnum } from "./enums/index.js";
 import { readFileSync } from "fs";
+import jwt from 'jsonwebtoken';
 import { TokenResponse, ErrorResponse, MessageResponse } from "./models/response/index.js";
 
 
@@ -20,13 +21,14 @@ const serviceAccount = JSON.parse(
   readFileSync(`${process.env.FIREBASE_CONFIG_PATH}/parking-app-62183-firebase-adminsdk-c6xca-fcfeb1f1aa.json`)
 )
 const tokenPrivateKey = readFileSync('jwtRS256.key')
+const tokenPublicKey = readFileSync('jwtRS256.key.pub')
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
   databaseURL: "https://parking-app-62183-default-rtdb.europe-west1.firebasedatabase.app"
 });
 
-initializeApp({
+const authApp = initializeApp({
   apiKey: "AIzaSyAdSFDbZFKdc0IGe09sBW6YcwDrZFUxF6E",
   authDomain: "parking-app-62183.firebaseapp.com",
   projectId: "parking-app-62183",
@@ -34,7 +36,7 @@ initializeApp({
   messagingSenderId: "740163352862",
   appId: "1:740163352862:web:c0ff54dffc7f7d4f1eb10f",
   measurementId: "G-L4Y697GZW4"
-})
+}, "AuthService")
 
 const app = express();
 const auth = express();
@@ -52,7 +54,7 @@ auth.post('/register', (req, res) => {
   if (!email || !password || !firstName || !lastName) {
     return res.status(400).json(new ErrorResponse('Missing required fields.').format())
   } else {
-    const auth = getAuth()
+    const auth = getAuth(authApp)
     createUserWithEmailAndPassword(auth, email, password)
       .then((userCredentials) => {
         if (userCredentials) {
@@ -70,6 +72,18 @@ auth.post('/register', (req, res) => {
         }
       }).catch(error => res.status(500).json(new ErrorResponse("User with this email already exists.", error).format()))
   }
+})
+
+auth.post('/isTokenValid', (req, res) => {
+  console.log("Checking token validation")
+  if (req.body.token && req.body.token.includes('Bearer ')) {
+    const decoded = jwt.verify(req.body.token.split(" ")[1], tokenPublicKey, { algorithms: ['RS256'] })
+    if (decoded) {
+      res.status(200).json({ user: decoded });
+    }
+    res.status(401).json(new ErrorResponse("Token is not valid").format())
+  }
+  res.status(400).json(new ErrorResponse("Token parameter not found.").format())
 })
 
 auth.post('/login', (req, res) => {
@@ -94,7 +108,7 @@ auth.post('/login', (req, res) => {
     if (!email || !password) {
       return res.status(400).json(() => new ErrorResponse('Email or password is incorrect.').format())
     }
-    const auth = getAuth()
+    const auth = getAuth(authApp)
     signInWithEmailAndPassword(auth, email, password)
       .then(user => {
         if (user) {
@@ -109,43 +123,12 @@ auth.post('/login', (req, res) => {
   }
 })
 
-auth.post('/signOut', (req, res) => {
+auth.get('/signOut', (req, res) => {
   console.log("Handling logout")
-  const auth = getAuth();
+  const auth = getAuth(authApp);
   signOut(auth).then(() => {
     res.json(new MessageResponse("User signed out successfully.").format())
   }).catch((error) => res.status(500).json(new ErrorResponse(error).format()));
-})
-
-auth.post('/register/complete', (req, res) => {
-  console.log("Handling account complete")
-  const { gender, birthday } = req.body
-  if (!gender || !birthday) {
-    return res.status(404).json(new ErrorResponse("Wrong request format.").format())
-  }
-
-  const auth = getAuth();
-  console.log("Current user is:", auth.currentUser)
-  if (auth.currentUser) {
-    User.getUserByUid(auth.currentUser.uid)
-      .then(user => {
-        if (user) {
-          user.gender = gender
-          user.birthday = birthday
-          user.updateThisUser()
-            .then(() => {
-              return res.json(new MessageResponse("User updated successfully.").format())
-            }).catch(error => {
-              return res.status(500).json(new ErrorResponse(error).format())
-          })
-        } else {
-          res.status(500).json(new ErrorResponse("User not found.").format())
-        }
-      }).catch(error => {
-      res.status(500).json(new ErrorResponse(error).format())
-    })
-  }
-  res.status(401).json(new ErrorResponse("User needs to be signed in to complete their account.").format())
 })
 
 // TODO: verify google signature
@@ -167,6 +150,6 @@ auth.post('/register/complete', (req, res) => {
 
 
 app.listen(process.env.AUTH_PORT, () => {
-  console.log(`Auth server running on port ${process.env.AUTH_PORT}`);
+  console.log(`AuthService running on port ${process.env.AUTH_PORT}`);
 })
 
