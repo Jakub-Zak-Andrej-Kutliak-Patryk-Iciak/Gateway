@@ -17,6 +17,9 @@ apiEndpoints:
   payment:
     host: localhost
     paths: [ '/api/payment', '/api/payment/*' ]
+  ads:
+    host: localhost
+    paths: [ '/ads', '/ads/*' ]
 serviceEndpoints:
   httpbin:
     url: 'https://httpbin.org'
@@ -26,6 +29,8 @@ serviceEndpoints:
     url: 'http://localhost:3002'
   paymentService:
     url: 'http://localhost:8089'
+  adsService:
+    url: 'http://localhost:3003'
 policies:
   - basic-auth
   - cors
@@ -116,4 +121,17 @@ pipelines:
       - proxy:
           - action:
               serviceEndpoint: paymentService
+              changeOrigin: true
+  adsPipeline:
+    apiEndpoints:
+      - ads
+    policies:
+      # Uncomment `key-auth:` when instructed to in the Getting Started guide.
+      # - key-auth:
+      - log:
+          action:
+            message: 'proxy to ads service ${req.method}'
+      - proxy:
+          - action:
+              serviceEndpoint: adsService
               changeOrigin: true
