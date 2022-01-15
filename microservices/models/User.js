@@ -53,6 +53,7 @@ export default class User {
   generateToken = (secret) => {
     const payload = {
       uid: this.uid,
+      email: this.email,
       firstName: this.firstName,
       lastName: this.lastName,
       photoUrl: this.photoUrl,

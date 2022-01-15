@@ -15,10 +15,17 @@ import { ProviderEnum } from "./enums/index.js";
 import { readFileSync } from "fs";
 import jwt from 'jsonwebtoken';
 import { TokenResponse, ErrorResponse, MessageResponse } from "./models/response/index.js";
+import { MQService } from './mq/MQService.js'
+
+const mqService = new MQService({
+  amqpUrl: process.env.MQ_URL,
+  publishQueue: process.env.MQ_MAIL_QUEUE,
+  autoConnect: true,
+});
 
 
 const serviceAccount = JSON.parse(
-  readFileSync(`${process.env.FIREBASE_CONFIG_PATH}/parking-app-62183-firebase-adminsdk-c6xca-fcfeb1f1aa.json`)
+  readFileSync(`./parking-app-62183-firebase-adminsdk-c6xca-fcfeb1f1aa.json`)
 )
 const tokenPrivateKey = readFileSync('jwtRS256.key')
 const tokenPublicKey = readFileSync('jwtRS256.key.pub')
@@ -100,6 +107,15 @@ auth.post('/login', (req, res) => {
     User.getUserByUid(uid).then(async user => {
       if (!user.isValid()) {
         await User.createUser({ uid, provider, firstName, lastName, email, photoUrl })
+          .then(user => {
+            if (user) {
+              mqService.publish({
+                "receiver": user.email,
+                "subject": `Welcome to ${process.env.APP_NAME}`,
+                "message": `Hi ${user.firstName},\n\nwe are happy you joined us today!\n\nSincerely,\nyour ${process.env.APP_NAME} team.`
+              })
+            }
+          })
       }
       res.json(new TokenResponse(user.generateToken(tokenPrivateKey)).format());
     }).catch(error => res.status(500).json(new ErrorResponse(error).format()))
